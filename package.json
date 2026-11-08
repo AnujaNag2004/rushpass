@@ -1,0 +1,44 @@
+{
+  "name": "rushpass",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RushPass — real-time ticket booking with live group rooms and a fair waiting room",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "start": "npm run start -w apps/api",
+    "test": "npm run test -w apps/api",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "seed": "npm run seed -w apps/api",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:up": "docker compose up -d postgres redis"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "prisma@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "msgpackr-extract@3.0.7": true
+  }
+}

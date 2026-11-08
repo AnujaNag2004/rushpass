@@ -1,0 +1,28 @@
+# Render Blueprint: New → Blueprint → pick this repo. Fill in the secret env vars when prompted.
+services:
+  - type: web
+    name: rushpass-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build -w apps/api && npx --workspace apps/api prisma migrate deploy
+    startCommand: npm run start -w apps/api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: TICKET_QR_SECRET
+        generateValue: true
+      - key: ADMISSION_SECRET
+        generateValue: true

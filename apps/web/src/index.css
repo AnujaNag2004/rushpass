@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens are RGB triplets so Tailwind opacity modifiers work (bg-primary/20). */
+:root,
+[data-theme='dark'] {
+  --bg: 11 10 20; /* #0B0A14 */
+  --surface: 21 19 31; /* #15131F */
+  --surface-2: 30 27 46; /* #1E1B2E */
+  --border: 42 38 64; /* #2A2640 */
+  --text: 244 242 255; /* #F4F2FF */
+  --muted: 154 148 184; /* #9A94B8 */
+  --primary: 124 92 255; /* #7C5CFF */
+  --accent: 255 77 141; /* #FF4D8D */
+  --gold: 255 181 71; /* #FFB547 */
+  --success: 46 230 166; /* #2EE6A6 */
+  --danger: 255 92 92; /* #FF5C5C */
+  --glass: 21 19 31;
+  --glass-alpha: 0.62;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: 250 248 255; /* #FAF8FF */
+  --surface: 255 255 255; /* #FFFFFF */
+  --surface-2: 241 237 251; /* #F1EDFB */
+  --border: 228 222 245; /* #E4DEF5 */
+  --text: 22 19 31; /* #16131F */
+  --muted: 107 101 133; /* #6B6585 */
+  --primary: 106 70 245; /* #6A46F5 */
+  --accent: 232 51 111; /* #E8336F */
+  --gold: 224 148 18; /* #E09412 */
+  --success: 15 168 119; /* #0FA877 */
+  --danger: 220 59 59; /* #DC3B3B */
+  --glass: 255 255 255;
+  --glass-alpha: 0.72;
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-text antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
+  }
+  ::selection {
+    background: rgb(var(--primary) / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  input,
+  select,
+  textarea {
+    @apply text-text;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--border)) transparent;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgb(var(--glass) / var(--glass-alpha));
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    @apply border border-border/80;
+  }
+  .card {
+    @apply glass rounded-card shadow-card transition duration-300;
+  }
+  .card-hover {
+    @apply hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow;
+  }
+  .text-gradient {
+    @apply bg-signature bg-clip-text text-transparent;
+  }
+  .input {
+    @apply w-full rounded-btn border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-text placeholder:text-muted/70
+      outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted;
+  }
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2/70 px-3.5 py-1.5 text-sm text-muted
+      transition hover:border-primary/50 hover:text-text;
+  }
+  .chip-active {
+    @apply border-primary/60 bg-primary/15 text-text;
+  }
+  /* Ticket stub: notched sides + perforation. Use with a child .perforation. */
+  .ticket {
+    --notch: 14px;
+    -webkit-mask:
+      radial-gradient(circle var(--notch) at 0 var(--perf, 70%), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--perf, 70%), #0000 98%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle var(--notch) at 0 var(--perf, 70%), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--perf, 70%), #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+  .perforation {
+    background-image: linear-gradient(to right, rgb(var(--border)) 50%, transparent 50%);
+    background-size: 12px 1.5px;
+    background-repeat: repeat-x;
+    height: 1.5px;
+  }
+  .seat-striped {
+    background-image: repeating-linear-gradient(45deg, rgb(var(--muted) / 0.35) 0 3px, transparent 3px 6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
