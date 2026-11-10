@@ -23,15 +23,19 @@ A real-time ticket booking platform for high-demand events, with **live multipla
 
 ## Screenshots
 
-> Add your own screenshots here after running the app (`docs/` folder works well).
+![RushPass home page](docs/screenshots/home.jpg)
 
-| Home | Group room | Waiting room |
-|---|---|---|
-| `docs/home.png` | `docs/group-room.png` | `docs/waiting-room.png` |
+| Live group booking room | Fair waiting room |
+|---|---|
+| ![Group room: four friends picking seats on one live map](docs/screenshots/group-room.jpg) | ![Waiting room counting down to a ticket drop](docs/screenshots/waiting-room.jpg) |
 
-| Seat map | E-ticket | Rush monitor |
-|---|---|---|
-| `docs/seats.png` | `docs/ticket.png` | `docs/rush-monitor.png` |
+| Real-time seat map | E-ticket with signed QR |
+|---|---|
+| ![Seat selection with live availability](docs/screenshots/seats.jpg) | ![Ticket with QR code](docs/screenshots/ticket.jpg) |
+
+| Organizer dashboard | Live rush monitor |
+|---|---|
+| ![Organizer sales dashboard](docs/screenshots/organizer.jpg) | ![Admin rush monitor showing zero double bookings](docs/screenshots/rush-monitor.jpg) |
 
 ---
 
@@ -151,7 +155,7 @@ Open **http://localhost:5173**.
 | Staff (check-in) | `staff@rushpass.dev` |
 | Users | `user@rushpass.dev`, `user2@rushpass.dev` … `user10@rushpass.dev` |
 
-The seed creates 3 venues (300-seat theatre, 120-seat club, 500-seat arena with a VIP pit), 12 events across Mumbai, Bengaluru and Delhi, ~800 existing bookings, and one **Drop** whose sale opens **5 minutes after seeding**.
+The seed creates 3 venues (300-seat theatre, 120-seat club, 500-seat arena with a VIP pit), 12 events across Mumbai, Bengaluru and Delhi, about 1,000 bookings from 50 customers (including shows that already happened, with scanned tickets), and one **Drop** whose sale opens **5 minutes after seeding**.
 
 ### Try the star features
 - **Group room:** log in as `user@…` in one browser and `user2@…` in a private window. Open an event → *With friends* → copy the code → join from the other window. Pick seats in both and watch them appear live.
@@ -187,15 +191,18 @@ k6 run -e API_URL=http://localhost:4000 -e SHOW_ID=<id> load-tests/booking-rush.
 
 ## ☁️ Deploy (free tiers)
 
-1. **Neon** → create a project → copy the Postgres connection string as `DATABASE_URL`.
-2. **Upstash** → create a Redis database → copy the `rediss://…` URL as `REDIS_URL`.
-3. **Render** → *New Web Service* from your GitHub repo (or *New → Blueprint* using `render.yaml`):
+1. **Neon** → create a project → copy the **direct** (non-pooled) Postgres connection string as `DATABASE_URL`. Migrations need the direct connection.
+2. **Render** → *New → Key Value* (free) → copy its **internal URL** as `REDIS_URL`. Any Redis works; the background workers poll, so avoid plans that cap the number of commands.
+3. **Render** → *New → Blueprint* → pick this repo. `render.yaml` defines the API service and generates the four secrets (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `TICKET_QR_SECRET`, `ADMISSION_SECRET`). Fill in `DATABASE_URL`, `REDIS_URL` and a temporary `CLIENT_URL`.
    - Build: `npm ci --include=dev && npm run build -w apps/api && npx --workspace apps/api prisma migrate deploy`
    - Start: `npm run start -w apps/api`
-   - Env: `NODE_ENV=production`, `DATABASE_URL`, `REDIS_URL`, `CLIENT_URL` (set in step 5), and four secrets `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `TICKET_QR_SECRET`, `ADMISSION_SECRET` (`openssl rand -hex 32` each).
-   - Seed once from the Render shell: `npm run seed`
 4. **Vercel** → import the repo → **Root directory** `apps/web` → env `VITE_API_URL` and `VITE_SOCKET_URL` = your Render URL (e.g. `https://rushpass-api.onrender.com`).
 5. Back on Render, set `CLIENT_URL` to your Vercel URL. In production cookies use `SameSite=None; Secure`, so both sites must be HTTPS (they are by default).
+6. Seed the demo data once from your machine. Use the same `TICKET_QR_SECRET` as the server so the seeded QR codes verify:
+
+   ```bash
+   DATABASE_URL="<neon url>" TICKET_QR_SECRET="<value from Render>" npm run seed -w apps/api
+   ```
 
 Optional: add Razorpay **test** keys (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` on Render and `VITE_RAZORPAY_KEY_ID` on Vercel) and point a Razorpay webhook at `https://<api>/api/v1/webhooks/razorpay`. Without keys, the mock gateway is used.
 
@@ -240,4 +247,8 @@ Socket.io rooms: `show:{id}`, `group:{code}`, `queue:{showId}`, `user:{id}`. Eve
 
 ---
 
-Built as a final-year B.Tech CSE project. Payments run in test mode only.
+## 👩‍💻 Author
+
+**Anuja Nag** · final-year B.Tech Computer Science · [github.com/AnujaNag2004](https://github.com/AnujaNag2004)
+
+Payments run in test mode only. Released under the [MIT License](LICENSE).

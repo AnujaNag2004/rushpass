@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "description": "RushPass — real-time ticket booking with live group rooms and a fair waiting room",
+  "author": "Anuja Nag",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnujaNag2004/rushpass.git"
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
