@@ -253,7 +253,7 @@ function HeroVisual({ event }: { event?: EventDTO }) {
       <div className="card overflow-hidden !bg-surface p-0 shadow-glow">
         <div className="relative h-32 overflow-hidden">
           {event ? <Banner src={event.bannerUrl} alt="" className="h-full w-full" /> : <div className="h-full bg-signature" />}
-          <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-widest text-muted">Group room</div>

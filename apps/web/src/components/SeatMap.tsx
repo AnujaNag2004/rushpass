@@ -170,13 +170,28 @@ export function SeatMap({
     };
   }, [seats]);
 
-  // Fit to the container width on first render.
-  useEffect(() => {
+  /**
+   * Scale that fits the map to its container. On a phone a full-width fit shrinks seats below a
+   * comfortable tap size, so interactive maps keep finger-sized seats there and scroll instead.
+   */
+  const fitScale = useCallback(
+    (containerWidth: number) => {
+      const min = !readOnly && containerWidth < 640 ? 0.85 : 0.45;
+      return Number(Math.min(1.25, Math.max(min, (containerWidth - 8) / width)).toFixed(2));
+    },
+    [readOnly, width],
+  );
+
+  const fit = useCallback(() => {
     const el = scrollRef.current;
     if (!el || !width) return;
-    const fit = Math.min(1.25, Math.max(0.45, (el.clientWidth - 8) / width));
-    setScale(Number(fit.toFixed(2)));
-  }, [width]);
+    setScale(fitScale(el.clientWidth));
+    // Start centred on the stage when the map is wider than the screen.
+    requestAnimationFrame(() => el.scrollTo({ left: (el.scrollWidth - el.clientWidth) / 2, top: 0 }));
+  }, [fitScale, width]);
+
+  // Fit to the container width on first render.
+  useEffect(fit, [fit]);
 
   const zoom = useCallback((delta: number) => setScale((s) => Math.min(2.5, Math.max(0.4, Number((s + delta).toFixed(2))))), []);
 
@@ -241,10 +256,7 @@ export function SeatMap({
         </button>
         <button
           className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
-          onClick={() => {
-            const el = scrollRef.current;
-            if (el) setScale(Math.min(1.25, Math.max(0.45, (el.clientWidth - 8) / width)));
-          }}
+          onClick={fit}
           aria-label="Fit to screen"
         >
           <Maximize2 className="h-3.5 w-3.5" />
@@ -349,6 +361,7 @@ export function SeatMap({
           })}
         </svg>
       </div>
+      {!readOnly && <p className="mt-2 text-center text-[11px] text-muted sm:hidden">Drag to move around · pinch to zoom</p>}
     </div>
   );
 }

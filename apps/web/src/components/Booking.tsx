@@ -65,7 +65,7 @@ export function EventCard({ event, index = 0 }: { event: EventDTO; index?: numbe
   const d = event.nextShowAt ? dayParts(event.nextShowAt) : null;
   const sellingFast = (event.soldRatio ?? 0) > 0.45;
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ delay: Math.min(index, 8) * 0.04 }}>
+    <motion.div className="h-full" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ delay: Math.min(index, 8) * 0.04 }}>
       <Link to={`/events/${event.slug}`} className="group block h-full rounded-card focus-visible:outline-offset-4">
         <div className="card card-hover flex h-full flex-col overflow-hidden !bg-surface">
           <div className="relative aspect-[16/10] overflow-hidden">
