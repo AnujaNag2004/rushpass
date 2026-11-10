@@ -80,7 +80,7 @@ const EVENTS: EventSeed[] = [
     venue: 'club',
     prices: [799, 1299, 2199],
     description: 'An intimate late-night set from a seven-piece band. Low lights, smooth brass and the best seats right by the stage.',
-    days: [3, 10, 17],
+    days: [-6, 3, 10, 17],
   },
   {
     title: 'Laugh Riot: Stand-up Special',
@@ -89,7 +89,7 @@ const EVENTS: EventSeed[] = [
     venue: 'club',
     prices: [499, 899, 1499],
     description: 'Four comics, one mic and zero chill. A tight 90-minute showcase of the sharpest new voices on the circuit. 16+.',
-    days: [2, 9],
+    days: [-3, 2, 9],
   },
   {
     title: 'Open Mic Mayhem',
@@ -116,7 +116,7 @@ const EVENTS: EventSeed[] = [
     venue: 'theatre',
     prices: [349, 599, 999],
     description: 'Three restored classics back to back on the big screen. Unlimited popcorn for Premium and VIP seats.',
-    days: [7, 14],
+    days: [-10, 7, 14],
   },
   {
     title: 'City Derby Finals — Big Screen',
@@ -211,13 +211,24 @@ async function main() {
   for (const [i, name] of names.entries()) {
     users.push(await mk(name, i === 0 ? 'user@rushpass.dev' : `user${i + 1}@rushpass.dev`, 'USER', i + 4));
   }
+  // A wider crowd of customers so sales aren't concentrated on a handful of accounts.
+  const FIRST = ['Aditi', 'Arjun', 'Diya', 'Farhan', 'Gauri', 'Harsh', 'Isha', 'Jai', 'Kavya', 'Laksh', 'Mira', 'Neel', 'Pooja', 'Rahul', 'Sneha', 'Tanvi', 'Uday', 'Varun', 'Yash', 'Zoya'];
+  const LAST = ['Agarwal', 'Bose', 'Chopra', 'Desai', 'Fernandes', 'Ghosh', 'Joshi', 'Kapoor', 'Menon', 'Reddy'];
+  const crowd = await Promise.all(
+    Array.from({ length: 40 }, (_, i) => {
+      const name = `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`;
+      return mk(name, `${name.toLowerCase().replace(' ', '.')}${i}@example.com`, 'USER', i);
+    }),
+  );
+  const demoUser = users[0];
+  const buyers = [...users.slice(1), ...crowd];
 
   const venueDefs = {
     theatre: { name: 'Lumière Grand Theatre', city: 'Mumbai', address: 'Marine Drive, Churchgate, Mumbai', layout: THEATRE, organizerId: org1.id },
     club: { name: 'The Blue Room', city: 'Bengaluru', address: '12 Church Street, Bengaluru', layout: CLUB, organizerId: org2.id },
     arena: { name: 'Skyline Arena', city: 'Delhi', address: 'Aerocity, New Delhi', layout: ARENA, organizerId: org1.id },
   };
-  const venues: Record<string, { id: string; seats: { id: string; tier: 'REGULAR' | 'PREMIUM' | 'VIP' }[] }> = {};
+  const venues: Record<string, { id: string; seats: { id: string; tier: 'REGULAR' | 'PREMIUM' | 'VIP'; row: string; number: number }[] }> = {};
   for (const [key, v] of Object.entries(venueDefs)) {
     const venue = await prisma.venue.create({
       data: {
@@ -228,13 +239,69 @@ async function main() {
         layoutJson: v.layout,
         seats: { create: generateSeats(v.layout) },
       },
-      include: { seats: { select: { id: true, tier: true } } },
+      include: { seats: { select: { id: true, tier: true, row: true, number: true } } },
     });
     venues[key] = venue;
   }
 
   const now = Date.now();
   let bookingCount = 0;
+  type SeatRef = { id: string; tier: 'REGULAR' | 'PREMIUM' | 'VIP'; row: string; number: number };
+  type ShowRef = { id: string; priceRegular: number; pricePremium: number; priceVip: number };
+  const shows: { show: ShowRef; startsAt: Date; free: SeatRef[] }[] = [];
+
+  /** Takes `n` seats next to each other in one row when it can, so the demo tickets look hand-picked. */
+  const adjacent = (free: SeatRef[], n: number) => {
+    for (const first of free) {
+      const run = Array.from({ length: n }, (_, k) => free.find((f) => f.row === first.row && f.number === first.number + k));
+      if (run.every(Boolean)) return run as SeatRef[];
+    }
+    return free.slice(0, n);
+  };
+
+  const book = async (show: ShowRef, chosen: SeatRef[], buyer: { id: string }, startsAt: Date, cancelled = false) => {
+    const subtotal = chosen.reduce((sum, seat) => sum + tierPrice(show, seat.tier), 0);
+    const breakdown = priceBreakdown(subtotal);
+    const bookingId = crypto.randomUUID();
+    const qrToken = signTicketToken(bookingId);
+    // Bought some time in the two weeks before the show (or before today, for shows still to come).
+    const latest = Math.min(now, startsAt.getTime() - HOUR);
+    const createdAt = new Date(latest - Math.random() * 13 * DAY);
+    const attended = startsAt.getTime() < now && Math.random() < 0.92;
+    await prisma.booking.create({
+      data: {
+        id: bookingId,
+        userId: buyer.id,
+        showId: show.id,
+        status: cancelled ? 'CANCELLED' : 'CONFIRMED',
+        heldSeatIds: chosen.map((c) => c.id),
+        ...breakdown,
+        createdAt,
+        // A cancelled booking gives its seats back, exactly like the cancel endpoint does.
+        seats: cancelled
+          ? undefined
+          : {
+              create: chosen.map((seat) => ({
+                showId: show.id,
+                seatId: seat.id,
+                price: tierPrice(show, seat.tier),
+                ticket: { create: { qrToken, checkedInAt: attended ? new Date(startsAt.getTime() - Math.random() * HOUR) : null } },
+              })),
+            },
+        payments: {
+          create: {
+            provider: 'MOCK',
+            providerOrderId: `seed_order_${bookingId}`,
+            providerPaymentId: `seed_pay_${bookingId}`,
+            status: cancelled ? 'REFUNDED' : 'PAID',
+            amount: breakdown.total,
+            createdAt,
+          },
+        },
+      },
+    });
+    bookingCount++;
+  };
   let dropShowId = '';
   for (const [i, e] of EVENTS.entries()) {
     const venue = venues[e.venue];
@@ -274,51 +341,26 @@ async function main() {
       }
 
       // Pre-sell a realistic chunk of seats so dashboards and seat maps have data.
-      const fill = 0.12 + Math.random() * 0.45;
-      const target = Math.floor(venue.seats.length * fill);
-      const pool = shuffle(venue.seats).slice(0, target);
+      // Shows that already happened sold better and have their tickets scanned.
+      const past = d < 0;
+      const fill = past ? 0.6 + Math.random() * 0.3 : 0.12 + Math.random() * 0.45;
+      const pool = shuffle(venue.seats).slice(0, Math.floor(venue.seats.length * fill));
+      shows.push({ show, startsAt, free: shuffle(venue.seats.filter((seat) => !pool.includes(seat))) });
       while (pool.length) {
         const n = Math.min(pool.length, 1 + Math.floor(Math.random() * 4));
-        const chosen = pool.splice(0, n);
-        const buyer = users[Math.floor(Math.random() * users.length)];
-        const subtotal = chosen.reduce((s, seat) => s + tierPrice(show, seat.tier), 0);
-        const breakdown = priceBreakdown(subtotal);
-        const bookingId = crypto.randomUUID();
-        const qrToken = signTicketToken(bookingId);
-        const createdAt = new Date(now - Math.random() * 13 * DAY);
-        await prisma.booking.create({
-          data: {
-            id: bookingId,
-            userId: buyer.id,
-            showId: show.id,
-            status: 'CONFIRMED',
-            heldSeatIds: chosen.map((c) => c.id),
-            ...breakdown,
-            createdAt,
-            seats: {
-              create: chosen.map((seat) => ({
-                showId: show.id,
-                seatId: seat.id,
-                price: tierPrice(show, seat.tier),
-                ticket: { create: { qrToken } },
-              })),
-            },
-            payments: {
-              create: {
-                provider: 'MOCK',
-                providerOrderId: `seed_order_${bookingId}`,
-                providerPaymentId: `seed_pay_${bookingId}`,
-                status: 'PAID',
-                amount: breakdown.total,
-                createdAt,
-              },
-            },
-          },
-        });
-        bookingCount++;
+        await book(show, pool.splice(0, n), buyers[Math.floor(Math.random() * buyers.length)], startsAt);
       }
     }
   }
+
+  // The demo account gets a small, believable history: a few upcoming nights, two it attended and one it cancelled.
+  const upcoming = shows.filter((x) => x.startsAt.getTime() > now + 2 * DAY).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+  const attended = shows.filter((x) => x.startsAt.getTime() < now);
+  for (const [i, x] of [upcoming[0], upcoming[2], upcoming[5]].entries()) {
+    if (x) await book(x.show, adjacent(x.free, [2, 4, 1][i]), demoUser, x.startsAt);
+  }
+  for (const x of attended.slice(0, 2)) await book(x.show, adjacent(x.free, 2), demoUser, x.startsAt);
+  if (upcoming[3]) await book(upcoming[3].show, adjacent(upcoming[3].free, 2), demoUser, upcoming[3].startsAt, true);
 
   console.log(`✅ ${EVENTS.length} events, 3 venues (${Object.values(venues).reduce((s, v) => s + v.seats.length, 0)} seats), ${bookingCount} bookings`);
   console.log(`🎟️  Drop show ${dropShowId} opens at ${new Date(now + 5 * 60_000).toLocaleTimeString()}`);
