@@ -173,7 +173,11 @@ export function Footer() {
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li><Link to="/organizer" className="hover:text-text">For organizers</Link></li>
             <li><Link to="/bookings" className="hover:text-text">My tickets</Link></li>
-            <li className="flex items-center gap-1.5"><Github className="h-3.5 w-3.5" /> Final-year project</li>
+            <li>
+              <a href="https://github.com/AnujaNag2004/rushpass" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-text">
+                <Github className="h-3.5 w-3.5" /> Source on GitHub
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -186,8 +190,33 @@ export function Footer() {
   );
 }
 
+/** Browser-tab titles by route prefix; the first match wins. */
+const PAGE_TITLES: [prefix: string, title: string][] = [
+  ['/explore', 'Explore events'],
+  ['/events/', 'Event'],
+  ['/login', 'Log in'],
+  ['/register', 'Create account'],
+  ['/shows/', 'Choose seats'],
+  ['/group/', 'Group room'],
+  ['/checkout/', 'Checkout'],
+  ['/booking/', 'Booking confirmed'],
+  ['/bookings', 'My tickets'],
+  ['/tickets/', 'Your ticket'],
+  ['/profile', 'Profile'],
+  ['/organizer', 'Organizer studio'],
+  ['/admin/rush-monitor', 'Rush monitor'],
+  ['/admin', 'Admin'],
+  ['/staff/checkin', 'Door check-in'],
+];
+
 export function AppLayout() {
   const location = useLocation();
+  useEffect(() => {
+    const match = location.pathname.endsWith('/waiting-room')
+      ? (['', 'Waiting room'] as const)
+      : PAGE_TITLES.find(([prefix]) => location.pathname.startsWith(prefix));
+    document.title = match ? `${match[1]} · RushPass` : 'RushPass — Get in before the rush';
+  }, [location.pathname]);
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-white">
@@ -195,11 +224,10 @@ export function AppLayout() {
       </a>
       <Navbar />
       <main id="main" className="flex-1">
-        <AnimatePresence mode="wait">
-          <motion.div key={location.pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}>
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        {/* CSS keyframes rather than a JS-driven transition: it can't stall if a lazy route suspends mid-animation. */}
+        <div key={location.pathname} className="animate-page-in">
+          <Outlet />
+        </div>
       </main>
       <Footer />
     </div>

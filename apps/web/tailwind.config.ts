@@ -43,6 +43,7 @@ export default {
           '66%': { transform: 'translate(-5%, 5%) scale(0.95)' },
         },
         shimmer: { '100%': { transform: 'translateX(100%)' } },
+        'page-in': { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'none' } },
         'pulse-red': {
           '0%, 100%': { color: 'rgb(var(--danger))', transform: 'scale(1)' },
           '50%': { color: 'rgb(var(--accent))', transform: 'scale(1.06)' },
@@ -52,6 +53,7 @@ export default {
         drift: 'drift 18s ease-in-out infinite',
         'drift-slow': 'drift 26s ease-in-out infinite reverse',
         shimmer: 'shimmer 1.6s infinite',
+        'page-in': 'page-in 0.24s ease-out backwards',
         'pulse-red': 'pulse-red 1s ease-in-out infinite',
       },
     },
